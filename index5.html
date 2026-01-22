@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WFH Attendance Dashboard</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { padding: 20px; }
+.table-container { max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <h2 class="mb-4">WFH Attendance & Leave Dashboard</h2>
+
+    <!-- Punch-In Form -->
+    <div class="card mb-4">
+        <div class="card-header">Punch In</div>
+        <div class="card-body">
+            <input type="text" id="empId" class="form-control mb-2" placeholder="Employee ID (EMP-1234)">
+            <input type="password" id="empPass" class="form-control mb-2" placeholder="Password (Abc@123)">
+            <button class="btn btn-primary" onclick="punchIn()">Punch In</button>
+            <div id="punchMsg" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <h4>Attendance Records</h4>
+    <div class="table-container mb-4">
+        <table class="table table-bordered" id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>City</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Leave Apply Form -->
+    <div class="card mb-4">
+        <div class="card-header">Apply Leave</div>
+        <div class="card-body">
+            <input type="text" id="leaveEmpId" class="form-control mb-2" placeholder="Employee ID">
+            <input type="text" id="leaveType" class="form-control mb-2" placeholder="Leave Type">
+            <input type="date" id="fromDate" class="form-control mb-2">
+            <input type="date" id="toDate" class="form-control mb-2">
+            <input type="text" id="reason" class="form-control mb-2" placeholder="Reason">
+            <button class="btn btn-success" onclick="applyLeave()">Apply Leave</button>
+            <div id="leaveMsg" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Leave Table -->
+    <h4>Leave Requests</h4>
+    <div class="table-container mb-4">
+        <table class="table table-bordered" id="leaveTable">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Type</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Analytics Chart -->
+    <h4>Daily Punch Summary</h4>
+    <canvas id="punchChart" height="100"></canvas>
+
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+// ----------------- Punch In -----------------
+async function punchIn() {
+    const empId = document.getElementById("empId").value.trim();
+    const empPass = document.getElementById("empPass").value.trim();
+    const punchMsg = document.getElementById("punchMsg");
+
+    if(!/^EMP-\d{4}$/.test(empId)) {
+        punchMsg.innerHTML = "❌ Employee ID format: EMP-1234"; return;
+    }
+    if(!/^[A-Z][a-z]{2}@[0-9]{3}$/.test(empPass)) {
+        punchMsg.innerHTML = "❌ Password format: Abc@123"; return;
+    }
+
+    // For demo: using dummy location
+    const lat = 12.9716, lon = 77.5946;
+    const address = "Bangalore, Karnataka, India";
+    const city = "Bangalore";
+
+    await fetch(API_BASE + "/api/punch", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            employeeId: empId,
+            password: empPass,
+            address, city, status:"PUNCHED_IN",
+            latitude: lat, longitude: lon,
+            street:"", area:"", state:"", country:"India"
+        })
+    });
+
+    punchMsg.innerHTML = "✅ Punch-In successful!";
+    loadAttendance();
+}
+
+// ----------------- Load Attendance -----------------
+async function loadAttendance() {
+    const res = await fetch(API_BASE + "/api/attendance");
+    const data = await res.json();
+    const tbody = document.querySelector("#attendanceTable tbody");
+    tbody.innerHTML = "";
+    data.attendance.forEach(p => {
+        tbody.innerHTML += `<tr>
+            <td>${p.employeeId}</td>
+            <td>${p.city}</td>
+            <td>${p.status}</td>
+            <td>${new Date(p.punchTime).toLocaleString()}</td>
+        </tr>`;
+    });
+    loadChart(data.attendance);
+}
+
+// ----------------- Apply Leave -----------------
+async function applyLeave() {
+    const leaveData = {
+        employeeId: document.getElementById("leaveEmpId").value.trim(),
+        leaveType: document.getElementById("leaveType").value.trim(),
+        fromDate: document.getElementById("fromDate").value,
+        toDate: document.getElementById("toDate").value,
+        reason: document.getElementById("reason").value.trim()
+    };
+    const res = await fetch(API_BASE + "/api/leave-apply", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(leaveData)
+    });
+    const data = await res.json();
+    document.getElementById("leaveMsg").innerText = data.message;
+    loadLeaves();
+}
+
+// ----------------- Load Leaves -----------------
+async function loadLeaves() {
+    const res = await fetch(API_BASE + "/api/leaves");
+    const data = await res.json();
+    const tbody = document.querySelector("#leaveTable tbody");
+    tbody.innerHTML = "";
+    data.leaves.forEach(l => {
+        tbody.innerHTML += `<tr>
+            <td>${l.employeeId}</td>
+            <td>${l.leaveType}</td>
+            <td>${l.fromDate}</td>
+            <td>${l.toDate}</td>
+            <td>${l.reason}</td>
+            <td>${l.status}</td>
+        </tr>`;
+    });
+}
+
+// ----------------- Chart -----------------
+let punchChart;
+function loadChart(attendance) {
+    const counts = {};
+    attendance.forEach(a => {
+        const date = new Date(a.punchTime).toLocaleDateString();
+        counts[date] = (counts[date] || 0) + 1;
+    });
+    const labels = Object.keys(counts);
+    const data = Object.values(counts);
+
+    if(punchChart) punchChart.destroy();
+    const ctx = document.getElementById("punchChart").getContext("2d");
+    punchChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets:[{label:"Daily Punches", data, backgroundColor:"rgba(54,162,235,0.7)"}] },
+        options: { responsive:true, plugins:{legend:{display:false}} }
+    });
+}
+
+// Load data on page load
+loadAttendance();
+loadLeaves();
+</script>
+</body>
+</html>
