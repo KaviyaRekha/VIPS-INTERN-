@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Route - India</title>
+    
+    <!-- Azure Maps SDK -->
+    <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css">
+    <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+    
+    <!-- Bootstrap for styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #myMap {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Sidebar styles */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px; /* Hide sidebar initially */
+            width: 250px;
+            height: 100%;
+            background-color: #f8f9fa;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto; /* Enables vertical scrolling */
+        }
+
+        #sidebar img {
+            display: block;
+            margin: 40px auto;
+        }
+
+        #sidebar a {
+            display: block;
+            padding: 15px;
+            text-decoration: none;
+            color: #333;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            font-size: 16px;
+            background-color: #f4f4f4;
+            transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+            margin-bottom: 8px;
+            border-radius: 4px; 
+        }
+
+        #sidebar a:hover {
+            background-color: #007bff;
+            color: #fff;
+            transform: scale(1.05);
+            box-shadow: 0px 4px 10px rgba(0, 123, 255, 0.3); 
+        }
+        #sidebar a:hover i {
+            color: #fff;
+        }
+
+        #sidebar a i {
+            margin-right: 8px;
+            font-size: 18px; 
+            transition: color 0.3s ease;
+        }
+        .date-filter-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-family: 'Roboto', sans-serif;
+            /* widh: 10px; */
+            flex-direction: row;
+            font-size: 14px;
+        }
+ 
+        .date-filter-form input[type="date"] {
+            padding: 8px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+            color: #555;
+            background-color: #fff;
+            width: 42%;
+        }
+
+        /* Hamburger icon styles */
+        #hamburger {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 2000;
+            cursor: pointer;
+        }
+
+        /* Zoom control positioned at top right */
+        .azm-zoom-control {
+            position: absolute !important;
+            top: 10px;
+            right: 10px;
+        }
+
+        /* Marker button styles */
+        .marker-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .marker-btn {
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        /* Popup content, initially hidden */
+        .popup-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            top: -60px;
+            left: -50px;
+            width: 150px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        /* Show popup when hovering over the marker button */
+        .marker-container:hover .popup-content {
+            display: block;
+        }
+
+        .nav-links {
+            flex-grow: 1;
+        }
+
+        .bottom-container {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            padding: 0 15px;
+        }
+
+        .login-link, .profile-info {
+            width: 100%;
+        }
+        #punchForm {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    width: 260px;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    z-index: 1500;
+    font-family: Arial, sans-serif;
+}
+
+#punchForm h5 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+#punchForm input,
+#punchForm button {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+#punchForm button {
+    background-color: #0078D4;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#punchForm button:hover {
+    background-color: #005ea6;
+}
+
+.punch-success {
+    color: green;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+.punch-error {
+    color: red;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+    </style>
+</head>
+<body onload="GetMap()">
+    <!-- Hamburger icon -->
+    <div id="hamburger" onclick="toggleSidebar()">
+        <button id="hamburgerButton" class="btn btn-primary">☰</button>
+    </div>
+
+    <!-- Sidebar for navigation -->
+    <div id="sidebar">
+        <!-- Close button inside sidebar -->
+        <button onclick="toggleSidebar()" class="btn btn-danger close-btn" style="position: absolute; top: 15px; right: 15px;">X</button>
+
+        <img src="https://hrms.gain-hub.com/web/static/img/odoo_logo_tiny.png" alt="Logo Placeholder" style="width: 212px;
+        height: 90px;
+        padding: 11px;
+        margin-left: 4px;margin-top: -5px;">
+        <!-- Navigation links -->
+        <div class="nav-links">
+            <a href="/visit"><i class="fas fa-map-marker-alt"></i>Visit</a>
+            <a href="/attendance"><i class="fas fa-calendar-check"></i>Attendance</a>
+        </div>
+
+        <!-- Login link at the bottom -->
+        <div class="bottom-container">
+        <div class="login-link" id="login-link">
+            <a href="/login"><i class="fas fa-lock"></i>Login</a>
+        </div>
+        <!-- Profile Info (Visible only when logged in) -->
+        <div class="profile-info" id="profile-info" style="display: none;">
+            <p><strong>Username:</strong> <span id="username-display"></span></p>
+            <button onclick="logout()" class="btn btn-danger btn-block">Logout</button>
+        </div>
+        </div>
+    </div>
+
+    <div id="myMap"></div>
+    <div id="punchForm">
+    <h5>WFH Location Punch-In</h5>
+
+    <input type="text" id="empId" placeholder="Employee ID">
+
+    <button onclick="punchInEmployee()">Punch In</button>
+
+    <div id="punchResult"></div>
+    </div>
+
+    <script>
+        var map, datasource;
+
+        var isLoggedIn = true; // Initially set to false
+        var username = ""; // Placeholder for the authenticated username
+
+        async function checkLoginStatus() {
+            try {
+                // Fetching user data from backend (replace '/user-info' with your actual endpoint)
+                const response = await fetch('/user-info', { credentials: 'include' });
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.isLoggedIn) {
+                        isLoggedIn = true;
+                        username = userData.username;
+                        showProfileInfo(); // Show profile section with username
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        }
+
+        function GetMap() {
+            checkLoginStatus(); // Check if user is logged in on load
+            
+                getUserLocation();
+            
+        }
+
+        function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const hamburger = document.getElementById('hamburger');
+        
+        if (sidebar.style.left === '0px') {
+            sidebar.style.left = '-300px';
+            hamburgerButton.innerHTML = '☰'; // Show hamburger icon
+            hamburger.style.display = 'block';
+        } else {
+            sidebar.style.left = '0px';
+            hamburger.style.display = 'none';
+        }
+    }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showUserLocation, displayEntireMap);
+            } else {
+                displayEntireMap();
+            }
+        }
+
+        function showUserLocation(position) {
+            var userLatitude = position.coords.latitude;
+            var userLongitude = position.coords.longitude;
+
+            map = new atlas.Map('myMap', {
+                center: [userLongitude, userLatitude],
+                zoom: 12,
+                view: 'Auto',
+                authOptions: {
+                    authType: 'subscriptionKey',
+                    subscriptionKey: ''
+                }
+            });
+
+            map.events.add('ready', function () {
+                map.controls.add(new atlas.control.ZoomControl(), {
+                    position: 'bottom-right'
+                });
+
+                var userLocationMarker = new atlas.HtmlMarker({
+                    position: [userLongitude, userLatitude],
+                    htmlContent: `
+                        <div class="marker-container">
+                            <button class="marker-btn">You</button>
+                            <div class="popup-content">
+                                <strong>Your Location</strong><br>
+                                Latitude: ${userLatitude.toFixed(6)}<br>
+                                Longitude: ${userLongitude.toFixed(6)}
+                            </div>
+                        </div>
+                    `
+                });
+
+                map.markers.add(userLocationMarker);
+            });
+        }
+
+        function displayEntireMap() {
+            var indiaCoordinates = [78.9629, 20.5937];
+
+            map = new atlas.Map('myMap', {
+                center: indiaCoordinates,
+                zoom: 4,
+                view: 'Auto',
+                authOptions: {
+                    authType: 'subscriptionKey',
+                    subscriptionKey: ''
+                }
+            });
+
+            map.events.add('ready', function () {
+                map.controls.add(new atlas.control.ZoomControl(), {
+                    position: 'top-right'
+                });
+            });
+        }
+
+        function showProfileInfo() {
+            const profileInfo = document.getElementById('profile-info');
+            profileInfo.style.display = 'block';
+            document.getElementById('profile-info').style.display = 'block';
+            document.getElementById('login-link').style.display = 'none';
+            document.getElementById('username-display').textContent = username;
+        }
+
+        function logout() {
+            fetch('/logout', { method: 'POST', credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        isLoggedIn = false;
+                        document.getElementById('profile-info').style.display = 'none';
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(error => console.error('Logout error:', error));
+        }
+        
+    </script>
+
+<script>
+async function getAddressFromCoordinates(lat, lon) {
+    const subscriptionKey = "YOUR_AZURE_MAPS_KEY";
+
+    const url = `https://atlas.microsoft.com/search/address/reverse/json?api-version=1.0&query=${lat},${lon}&subscription-key=${subscriptionKey}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.addresses && data.addresses.length > 0) {
+            const address = data.addresses[0].address;
+
+            return {
+                street: address.streetName || "",
+                area: address.municipalitySubdivision || "",
+                city: address.municipality || "",
+                state: address.countrySubdivision || "",
+                country: address.country || "",
+                fullAddress: address.freeformAddress || "Address not found"
+            };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Reverse geocoding error:", error);
+        return null;
+    }
+}
+</script>
+
+<script>
+async function punchInEmployee() {
+    const empId = document.getElementById("empId").value.trim();
+    const result = document.getElementById("punchResult");
+
+    const empIdPattern = /^EMP-\d{4}$/;
+
+    if (!empIdPattern.test(empId)) {
+        result.innerHTML = `
+            <div class="punch-error">
+                ❌ Invalid Employee ID<br>
+                Format should be <b>EMP-1234</b>
+            </div>
+        `;
+        return;
+    }
+
+    if (!navigator.geolocation) {
+        result.innerHTML = "<div class='punch-error'>❌ Geolocation not supported</div>";
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            const addressData = await getAddressFromCoordinates(lat, lng);
+
+            if (!addressData) {
+                result.innerHTML = "<div class='punch-error'>❌ Unable to fetch address</div>";
+                return;
+            }
+
+            result.innerHTML = `
+                <div class="punch-success">
+                    <b>PUNCHED IN</b><br>
+                    ${empId}<br>
+                    📍 ${addressData.fullAddress}
+                </div>
+            `;
+
+            // Send to backend
+            const payload = {
+                employeeId: empId,
+                address: addressData.fullAddress,
+                street: addressData.street,
+                area: addressData.area,
+                city: addressData.city,
+                state: addressData.state,
+                country: addressData.country,
+                status: "PUNCHED_IN"
+            };
+
+            console.log("Punch Payload:", payload);
+        },
+        function() {
+            result.innerHTML = `
+                <div class="punch-error">
+                    ❌ Location permission denied
+                </div>
+            `;
+        }
+    );
+}
+</script>
+
+</body>
+
+</html>
