@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "author": "BLDC Fault Prediction",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp32", "top": 0, "left": 0 },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": 50, "left": 300, "attrs": { "label": "Speed" } },
+
+    { "type": "wokwi-led", "id": "ledG", "top": 120, "left": 420, "attrs": { "color": "green" } },
+    { "type": "wokwi-led", "id": "ledR", "top": 170, "left": 420, "attrs": { "color": "red" } },
+    { "type": "wokwi-resistor", "id": "rg", "top": 120, "left": 370, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "rr", "top": 170, "left": 370, "attrs": { "value": "220" } },
+
+    { "type": "wokwi-dc-motor", "id": "motor1", "top": 320, "left": 300 }
+  ],
+  "connections": [
+    ["pot1:SIG", "esp32:GPIO34", "green", ["v0"]],
+    ["pot1:VCC", "esp32:3V3", "red", ["v0"]],
+    ["pot1:GND", "esp32:GND.1", "black", ["v0"]],
+
+    ["rg:1", "esp32:GPIO13", "green", ["v0"]],
+    ["rg:2", "ledG:A", "green", ["v0"]],
+    ["ledG:C", "esp32:GND.2", "black", ["v0"]],
+
+    ["rr:1", "esp32:GPIO12", "red", ["v0"]],
+    ["rr:2", "ledR:A", "red", ["v0"]],
+    ["ledR:C", "esp32:GND.2", "black", ["v0"]],
+
+    ["motor1:+", "esp32:GPIO26", "red", ["v0"]],
+    ["motor1:-", "esp32:GND.2", "black", ["v0"]]
+  ]
+}
